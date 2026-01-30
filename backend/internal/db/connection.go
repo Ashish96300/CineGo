@@ -6,25 +6,32 @@ import (
 	"log"
 	"os"
 	"time"
-
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
+	"fmt"
+	
+	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	
+	
 )
 
 func ConnectMongo() (*mongo.Client, error) {
 	uri := os.Getenv("MONGO_URI")
+	if uri == "" {
+		return nil, fmt.Errorf("MONGO_URI is empty")
+	}
+
+	client, err := mongo.Connect(options.Client().ApplyURI(uri))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create mongo client: %w", err)
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI(uri))
-	if err != nil {
-		return nil, err
-	}
 	if err := client.Ping(ctx, nil); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not ping database: %w", err)
 	}
 
-	log.Println("✅ MongoDB connected")
+	log.Println("✅ MongoDB connected successfully")
 	return client, nil
 }
